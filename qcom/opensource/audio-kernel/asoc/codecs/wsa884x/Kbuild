@@ -34,6 +34,10 @@ ifeq ($(KERNEL_BUILD), 0)
 		include $(AUDIO_ROOT)/config/litoauto.conf
 		INCS    +=  -include $(AUDIO_ROOT)/config/litoautoconf.h
 	endif
+	ifeq ($(CONFIG_ARCH_SUN), y)
+		include $(AUDIO_ROOT)/config/sunauto.conf
+		export INCS += -include $(AUDIO_ROOT)/config/sunautoconf.h
+	endif
 endif
 
 # As per target team, build is done as follows:
