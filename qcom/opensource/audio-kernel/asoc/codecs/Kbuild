@@ -112,6 +112,10 @@ ifeq ($(KERNEL_BUILD), 0)
 		export
 		INCS    +=  -include $(AUDIO_ROOT)/config/sdxlemurautoconf.h
 	endif
+	ifeq ($(CONFIG_ARCH_SUN), y)
+		include $(AUDIO_ROOT)/config/sunauto.conf
+		export INCS += -include $(AUDIO_ROOT)/config/sunautoconf.h
+	endif
 endif
 endif
 
@@ -286,6 +290,7 @@ ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= wsa884x/
 	obj-y	+= wsa883x/
 	obj-y	+= rouleur/
+	obj-y	+= aw883xx/
 	obj-y	+= ./
 endif
 # Module information used by KBuild framework

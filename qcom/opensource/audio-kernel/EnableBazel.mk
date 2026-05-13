@@ -78,6 +78,7 @@ LOCAL_MODULE_KO_DIRS += asoc/codecs/wcd9378/wcd9378_slave_dlkm.ko
 LOCAL_MODULE_KO_DIRS += asoc/codecs/lpass_bt_swr_dlkm.ko
 LOCAL_MODULE_KO_DIRS += asoc/codecs/hdmi_dlkm.ko
 LOCAL_MODULE_KO_DIRS += asoc/codecs/qmp1000/qmp_dlkm.ko
+LOCAL_MODULE_KO_DIRS += asoc/codecs/aw883xx/aw883xx_dlkm.ko
 endif
 
 ifeq ($(call is-board-platform-in-list,blair),true)
