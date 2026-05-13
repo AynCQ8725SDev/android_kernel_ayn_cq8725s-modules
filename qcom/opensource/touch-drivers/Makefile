@@ -1,7 +1,16 @@
-#
-# Makefile for the Goodix gt9xx touchscreen driver.
-#
 
-obj-$(CONFIG_TOUCHSCREEN_GT9XX)		+= gt9xx.o
-obj-$(CONFIG_TOUCHSCREEN_GT9XX_UPDATE)	+= gt9xx_update.o
-obj-$(CONFIG_TOUCHSCREEN_GT9XX_DEBUG)	+= goodix_tool.o
+KBUILD_OPTIONS+= TOUCH_ROOT=$(KERNEL_SRC)/$(M)
+KBUILD_OPTIONS += MODNAME?=touch_dlkm
+
+all:
+	$(MAKE) -C $(KERNEL_SRC) M=$(M) modules $(KBUILD_OPTIONS)
+
+modules_install:
+	$(MAKE) INSTALL_MOD_STRIP=1 -C $(KERNEL_SRC) M=$(M) modules_install
+
+%:
+	$(MAKE) -C $(KERNEL_SRC) M=$(M) $@ $(KBUILD_OPTIONS)
+
+clean:
+	rm -f *.o *.ko *.mod.c *.mod.o *~ .*.cmd Module.symvers
+	rm -rf .tmp_versions

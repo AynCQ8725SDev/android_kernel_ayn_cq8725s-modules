@@ -118,6 +118,19 @@ module_entry(
     deps = ["qts"],
 )
 
+
+#define ddk_module() for synaptics_tcm2_ts
+module_entry(
+    name = "gt9xx",
+    config_option = "CONFIG_TOUCH_GT9XX",
+    srcs = [
+			"gt9xx/gt9xx.c",
+			"gt9xx/gt9xx_update.c",
+			"gt9xx/goodix_tool.c"
+    ],
+    deps = ["qts"],
+)
+
 #define ddk_module() for atmel_mxt_ts
 module_entry(
     name = "atmel_mxt_ts",
