@@ -1,7 +1,5 @@
 # Android makefile for audio kernel modules
 
-ifeq ($(AUDIO_DLKM_ENABLE), true)
-
 LOCAL_PATH := $(call my-dir)
 
 ifeq ($(call is-board-platform-in-list,taro),true)
@@ -30,8 +28,10 @@ endif
 
 ifeq ($(ENABLE_AUDIO_LEGACY_TECHPACK),true)
 include $(call all-subdir-makefiles)
-LOCAL_PATH := vendor/qcom/opensource/audio-kernel
 endif
+
+BOARD_OPENSOURCE_DIR ?= vendor/qcom/opensource
+BOARD_COMMON_DIR ?= device/qcom/common
 
 # Build/Package only in case of supported target
 ifeq ($(call is-board-platform-in-list,taro kalama bengal pineapple sun holi blair gen4 msmnile tuna), true)
@@ -40,12 +40,12 @@ ifeq ($(call is-board-platform-in-list,taro kalama bengal pineapple sun holi bla
 ifneq ($(findstring vendor,$(LOCAL_PATH)),)
 
 ifneq ($(findstring opensource,$(LOCAL_PATH)),)
-	AUDIO_BLD_DIR := $(abspath .)/vendor/qcom/opensource/audio-kernel
+	AUDIO_BLD_DIR := $(abspath .)/$(BOARD_OPENSOURCE_DIR)/audio-kernel
 endif # opensource
 
 include $(AUDIO_BLD_DIR)/EnableBazel.mk
-DLKM_DIR := $(TOP)/device/qcom/common/dlkm
-
+DLKM_DIR := $(TOP)/$(BOARD_COMMON_DIR)/dlkm
+    
 
 ###########################################################
 # This is set once per LOCAL_PATH, not per (kernel) module
@@ -369,6 +369,16 @@ LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(KERNEL_MODULES_OUT)
 include $(DLKM_DIR)/Build_external_kernelmodule.mk
 
+########################### AW883XX CODEC  ################################
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES           := $(AUDIO_SRC_FILES)
+LOCAL_MODULE              := aw883xx_dlkm.ko
+LOCAL_MODULE_KBUILD_NAME  := asoc/codecs/aw883xx/aw883xx_dlkm.ko
+LOCAL_MODULE_TAGS         := optional
+LOCAL_MODULE_DEBUG_ENABLE := true
+LOCAL_MODULE_PATH         := $(KERNEL_MODULES_OUT)
+include $(DLKM_DIR)/Build_external_kernelmodule.mk
+
 ########################### WCD938x CODEC  ################################
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES           := $(AUDIO_SRC_FILES)
@@ -538,4 +548,3 @@ endif
 endif # DLKM check
 endif # supported target check
 endif
-endif # AUDIO_DLKM_ENABLE
