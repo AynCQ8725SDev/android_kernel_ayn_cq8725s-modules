@@ -349,10 +349,33 @@ static int moorechip_joystick_receive_buf(struct serdev_device *serdev,
 						dev_err(dev, "Unexpected nop response!\n");
 
 					// We sould only receive a NOP when the fw upgrade is done
-					gpio_direction_output(moorechip->reset_gpio, 0);
-					msleep(100);
-					gpio_direction_output(moorechip->reset_gpio, 1);
-					msleep(100);
+					if (moorechip->reset_gpio >= 0) {
+						gpio_direction_output(moorechip->reset_gpio, 0);
+						msleep(100);
+						gpio_direction_output(moorechip->reset_gpio, 1);
+						msleep(100);
+					} else {
+						int rc;
+
+						regulator_disable(moorechip->vdd_reg);
+						regulator_disable(moorechip->levelshifter_reg);
+						msleep(100);
+
+						rc = regulator_enable(moorechip->vdd_reg);
+						if (rc)
+						{
+							dev_err(dev, "Failed to enable joystick vdd regulator\n");
+							return rc;
+						}
+
+						rc = regulator_enable(moorechip->levelshifter_reg);
+						if (rc)
+						{
+							dev_err(dev, "Failed to enable joystick levelshifter regulator\n");
+							return rc;
+						}
+						msleep(100);
+					}
 
 					moorechip_upgrade_done(moorechip);
 					break;
@@ -1146,27 +1169,23 @@ static int moorechip_joystick_probe(struct serdev_device *serdev)
 	}
 
 	moorechip->boot_gpio = of_get_named_gpio(dev->of_node, "moorechip,boot-gpio", 0);
-	if (moorechip->boot_gpio < 0) {
-		dev_err(dev, "Failed to set boot gpio direction\n");
-		return moorechip->boot_gpio;
-	}
-
-	ret = devm_gpio_request(dev, moorechip->boot_gpio, "joystick-boot");
-	if (ret) {
-		dev_err(dev, "Failed to request gpio joystick-boot\n");
-		return ret;
+	if (moorechip->boot_gpio >= 0) {
+		ret = devm_gpio_request(dev, moorechip->boot_gpio, "joystick-boot");
+		if (ret)
+		{
+			dev_err(dev, "Failed to request gpio joystick-boot\n");
+			return ret;
+		}
 	}
 
 	moorechip->reset_gpio = of_get_named_gpio(dev->of_node, "moorechip,reset-gpio", 0);
-	if (moorechip->reset_gpio < 0) {
-		dev_err(dev, "Failed to set reset gpio direction\n");
-		return moorechip->reset_gpio;
-	}
-
-	ret = devm_gpio_request(dev, moorechip->reset_gpio, "joystick-reset");
-	if (ret) {
-		dev_err(dev, "Failed to request gpio joystick-reset\n");
-		return ret;
+	if (moorechip->reset_gpio >= 0) {
+		ret = devm_gpio_request(dev, moorechip->reset_gpio, "joystick-reset");
+		if (ret)
+		{
+			dev_err(dev, "Failed to request gpio joystick-reset\n");
+			return ret;
+		}
 	}
 
 	serdev_device_set_drvdata(serdev, moorechip);
@@ -1266,8 +1285,10 @@ static int moorechip_joystick_probe(struct serdev_device *serdev)
 			device_create_file(joystick, &dev_attr_m1_function);
 	}
 
-	gpio_direction_output(moorechip->boot_gpio, 0);
-	gpio_direction_output(moorechip->reset_gpio, 0);
+	if (moorechip->boot_gpio >= 0)
+		gpio_direction_output(moorechip->boot_gpio, 0);
+	if (moorechip->reset_gpio >= 0)
+		gpio_direction_output(moorechip->reset_gpio, 0);
 
 	ret = regulator_enable(moorechip->vdd_reg);
 	if (ret) {
@@ -1284,8 +1305,10 @@ static int moorechip_joystick_probe(struct serdev_device *serdev)
 
 	msleep(40);
 
-	gpio_direction_output(moorechip->reset_gpio, 1);
-	msleep(100);
+	if (moorechip->reset_gpio >= 0) {
+		gpio_direction_output(moorechip->reset_gpio, 1);
+		msleep(100);
+	}
 
 	moorechip_set_input_transmit_enabled(moorechip, true);
 	msleep(100);
@@ -1311,8 +1334,10 @@ static void moorechip_joystick_remove(struct serdev_device *serdev)
 
 	serdev_device_close(serdev);
 
-	gpio_direction_output(moorechip->reset_gpio, 0);
-	gpio_direction_output(moorechip->boot_gpio, 0);
+	if(moorechip->reset_gpio >= 0)
+		gpio_direction_output(moorechip->reset_gpio, 0);
+	if (moorechip->boot_gpio >= 0)
+		gpio_direction_output(moorechip->boot_gpio, 0);
 
 	if (!IS_ERR_OR_NULL(moorechip->vdd_reg) && regulator_is_enabled(moorechip->vdd_reg))
 		regulator_disable(moorechip->vdd_reg);
@@ -1325,8 +1350,10 @@ static int __maybe_unused moorechip_joystick_suspend(struct device *dev)
 {
 	struct moorechip_driver *moorechip = dev_get_drvdata(dev);
 
-	gpio_direction_output(moorechip->reset_gpio, 0);
-	gpio_direction_output(moorechip->boot_gpio, 0);
+	if(moorechip->reset_gpio >= 0)
+			gpio_direction_output(moorechip->reset_gpio, 0);
+	if (moorechip->boot_gpio >= 0)
+		gpio_direction_output(moorechip->boot_gpio, 0);
 
 	if (regulator_is_enabled(moorechip->vdd_reg))
 		regulator_disable(moorechip->vdd_reg);
@@ -1345,8 +1372,10 @@ static int __maybe_unused moorechip_joystick_resume(struct device *dev)
 	device_destroy(moorechip->class, 0);
 	class_destroy(moorechip->class);
 
-	gpio_direction_output(moorechip->boot_gpio, 0);
-	gpio_direction_output(moorechip->reset_gpio, 0);
+	if (moorechip->boot_gpio >= 0)
+		gpio_direction_output(moorechip->boot_gpio, 0);
+	if (moorechip->reset_gpio >= 0)
+		gpio_direction_output(moorechip->reset_gpio, 0);
 
 	if (!regulator_is_enabled(moorechip->vdd_reg)) {
 		ret = regulator_enable(moorechip->vdd_reg);
@@ -1367,8 +1396,10 @@ static int __maybe_unused moorechip_joystick_resume(struct device *dev)
 
 	msleep(40);
 
-	gpio_direction_output(moorechip->reset_gpio, 1);
-	msleep(100);
+	if(moorechip->reset_gpio >= 0) {
+		gpio_direction_output(moorechip->reset_gpio, 1);
+		msleep(100);
+	}
 
 	moorechip_set_input_transmit_enabled(moorechip, true);
 	msleep(100);
