@@ -35,12 +35,17 @@ enum moorechip_type {
 enum moorechip_cmd {
 	MOORECHIP_CMD_NOP = 1, // returns 1
 	MOORECHIP_CMD_GET_VERSION,
+
 	// 3 and 4 are not supported in the firmware
 	MOORECHIP_CMD_SET_PARAMETER = 5,
 	MOORECHIP_CMD_GET_APP_SIZE,
 	MOORECHIP_CMD_SET_PROCESSING_STATE,
 	MOORECHIP_CMD_TEST_DATA,
 	MOORECHIP_CMD_SET_TRANSMIT_STATE,
+
+	// TODO: add calibration commands starting at 0xA0
+	MOORECHIP_CMD_SET_LEFT_STICK_AXIS_SWAP = 0xB0,
+
 	MOORECHIP_CMD_UPGRADE_START = 0xE9,
 	MOORECHIP_CMD_UPGRADE_STATE_REPORT,
 	MOORECHIP_CMD_UPGRADE_SET_PARAMETER,
@@ -235,6 +240,16 @@ static int moorechip_set_input_transmit_enabled(struct moorechip_driver *moorech
 	struct moorechip_enable en = {
 		.cmd = MOORECHIP_CMD_SET_TRANSMIT_STATE,
 		.enable = enable ? 2 : 1
+	};
+
+	return moorechip_send_cmd(moorechip, MOORECHIP_TYPE_CMD, &en, sizeof(en));
+}
+
+static int moorechip_set_left_stick_axis_swap(struct moorechip_driver *moorechip, bool enable)
+{
+	struct moorechip_enable en = {
+		.cmd = MOORECHIP_CMD_SET_LEFT_STICK_AXIS_SWAP,
+		.enable = enable ? 3 : 0
 	};
 
 	return moorechip_send_cmd(moorechip, MOORECHIP_TYPE_CMD, &en, sizeof(en));
@@ -1121,6 +1136,17 @@ static ssize_t get_m1_function(struct device *dev, struct device_attribute *attr
 }
 static DEVICE_ATTR(m1_function, 0644, get_m1_function, set_m1_function);
 
+static ssize_t set_left_stick_axis_swap(struct device *dev, struct device_attribute *attr,
+										const char *buf, size_t count)
+{
+	struct moorechip_driver *moorechip = dev_get_drvdata(dev);
+
+	moorechip_set_left_stick_axis_swap(moorechip, *buf == '1');
+
+	return count;
+}
+static DEVICE_ATTR(left_stick_axis_swap, 0644, NULL, set_left_stick_axis_swap);
+
 static int moorechip_joystick_probe(struct serdev_device *serdev)
 {
 	struct moorechip_driver *moorechip;
@@ -1283,6 +1309,7 @@ static int moorechip_joystick_probe(struct serdev_device *serdev)
 			device_create_file(joystick, &dev_attr_m0_function);
 		if (moorechip->m1_key)
 			device_create_file(joystick, &dev_attr_m1_function);
+		device_create_file(joystick, &dev_attr_left_stick_axis_swap);
 	}
 
 	if (moorechip->boot_gpio >= 0)
