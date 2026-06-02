@@ -174,50 +174,13 @@ static aw_snd_soc_codec_t *aw883xx_get_codec(struct snd_soc_dai *dai)
  * aw883xx reg write/read
  *
  ******************************************************/
-#ifdef Hugo_debug
-int HexToAscii(unsigned char *pHexStr,unsigned char *pAscStr,int Len)
-{
-	char Nibble[2];
-	unsigned char Buffer[2048];
-	int i = 0;
-	int j = 0;
 
-	for(i=0;i<Len;i++)
-	{
-		Nibble[0]=pHexStr[i] >> 4 & 0X0F;
-		Nibble[1]=pHexStr[i] & 0x0F;
-		for(j=0;j<2;j++)
-		{
-			if(Nibble[j]<10)
-			{
-				Nibble[j]=Nibble[j]+0x30;
-			}
-			else if(Nibble[j]<16)
-			{
-				Nibble[j]=Nibble[j]-10+'A';
-			}
-			else
-			{
-				return 0;
-			}
-		}
-		memcpy(Buffer+i*2,Nibble,2);
-	}
-	Buffer[2*Len]=0x00;
-	memcpy(pAscStr,Buffer,2*Len);
-	pAscStr[2*Len]=0x00;
-	return 1;
-}
-#endif
 int aw883xx_i2c_writes(struct aw883xx *aw883xx,
 		uint8_t reg_addr, uint8_t *buf, uint16_t len)
 {
 	int ret = -1;
 	uint8_t *data = NULL;
-#ifdef Hugo_debug	
-	int lp=0;
-	uint8_t tmp[2048]={0};
-#endif	
+
 	data = kmalloc(len + 1, GFP_KERNEL);
 	if (data == NULL) {
 		aw_dev_err(aw883xx->dev, "can not allocate memory");
@@ -226,12 +189,7 @@ int aw883xx_i2c_writes(struct aw883xx *aw883xx,
 
 	data[0] = reg_addr;
 	memcpy(&data[1], buf, len);
-#ifdef Hugo_debug	
-	if(len > 2){
-		lp = HexToAscii(&data[1],&tmp[0],len);
-		aw_dev_err(aw883xx->dev, "[Hugo] i2c master len: %d, lp: %d,buf:%s\n",len,lp,tmp);
-	}	
-#endif
+
 	ret = i2c_master_send(aw883xx->i2c, data, len + 1);
 	if (ret < 0) {
 		aw_dev_err(aw883xx->dev, "i2c master send error");
@@ -683,11 +641,10 @@ static int aw883xx_startup(struct snd_pcm_substream *substream,
 
 static int aw883xx_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 {
-#if DEBUG_INFO
 	aw_snd_soc_codec_t *codec = aw883xx_get_codec(dai);
 
 	aw_dev_info(codec->dev, "fmt=0x%x", fmt);
-#endif
+
 	return 0;
 }
 
@@ -2112,7 +2069,6 @@ static int aw883xx_interrupt_init(struct aw883xx *aw883xx)
 	return 0;
 }
 
-#if 0
 /******************************************************
  *
  * sys group attribute: reg
@@ -2818,7 +2774,6 @@ static DEVICE_ATTR(i2c_log_en, S_IWUSR | S_IRUGO,
 static DEVICE_ATTR(dsp, S_IRUGO,
 		aw883xx_dsp_show, NULL);
 
-
 static struct attribute *aw883xx_attributes[] = {
 	&dev_attr_reg.attr,
 	&dev_attr_rw.attr,
@@ -2839,9 +2794,6 @@ static struct attribute *aw883xx_attributes[] = {
 static struct attribute_group aw883xx_attribute_group = {
 	.attrs = aw883xx_attributes
 };
-#endif
-
-
 
 /******************************************************
  *
@@ -2911,13 +2863,11 @@ static int aw883xx_i2c_probe(struct i2c_client *i2c)
 		return ret;
 	}
 
-#if 0
 	ret = sysfs_create_group(&i2c->dev.kobj, &aw883xx_attribute_group);
 	if (ret < 0) {
 		aw_dev_info(&i2c->dev, "error creating sysfs attr files");
 		goto err_sysfs;
 	}
-#endif
 
 	dev_set_drvdata(&i2c->dev, aw883xx);
 
@@ -2932,14 +2882,16 @@ static int aw883xx_i2c_probe(struct i2c_client *i2c)
 
 	return 0;
 
-#if 0
 err_sysfs:
-#endif
 	aw_componet_codec_ops.unregister_codec(&i2c->dev);
 	return ret;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 static void aw883xx_i2c_remove(struct i2c_client *i2c)
+#else
+static int aw883xx_i2c_remove(struct i2c_client *i2c)
+#endif
 {
 	struct aw883xx *aw883xx = i2c_get_clientdata(i2c);
 
@@ -2950,10 +2902,8 @@ static void aw883xx_i2c_remove(struct i2c_client *i2c)
 			gpio_to_irq(aw883xx->irq_gpio),
 			aw883xx);
 
-#if 0
 	sysfs_remove_group(&aw883xx->dev->kobj,
 			&aw883xx_attribute_group);
-#endif
 
 	/*free device resource */
 	aw883xx_device_remove(aw883xx->aw_pa);
@@ -2967,6 +2917,10 @@ static void aw883xx_i2c_remove(struct i2c_client *i2c)
 		g_awinic_cfg = NULL;
 	}
 	mutex_unlock(&g_aw883xx_lock);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+	return 0;
+#endif
 }
 
 static const struct i2c_device_id aw883xx_i2c_id[] = {

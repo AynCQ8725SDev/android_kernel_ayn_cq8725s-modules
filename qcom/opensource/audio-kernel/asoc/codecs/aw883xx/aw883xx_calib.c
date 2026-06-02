@@ -13,7 +13,7 @@
 
 #include <linux/module.h>
 #include <asm/ioctls.h>
-// #include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/fs.h>
@@ -25,9 +25,6 @@
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
-// #include <asm-generic/uaccess.h>
-#include <linux/uaccess.h>
-
 #include "aw883xx_calib.h"
 #include "aw883xx_device.h"
 #include "aw883xx_log.h"
@@ -84,7 +81,6 @@ static int aw_cali_write_cali_re_to_file(int32_t cali_re, int channel)
 	loff_t pos = 0;
 	mm_segment_t fs;
 
-	// fp = filp_open(AWINIC_CALI_FILE, O_RDWR | O_CREAT, 0644);
 	fp = filp_open_block(AWINIC_CALI_FILE, O_RDWR | O_CREAT, 0644);
 	if (IS_ERR(fp)) {
 		aw_pr_err("channel:%d open %s failed, error=%ld",
@@ -96,14 +92,9 @@ static int aw_cali_write_cali_re_to_file(int32_t cali_re, int channel)
 
 	snprintf(buf, sizeof(buf), "%10d", cali_re);
 
-	// fs = get_fs();
-	// set_fs(KERNEL_DS);
-	
 	fs = force_uaccess_begin();
 	aw_fs_write(fp, buf, strlen(buf), &pos);
 	force_uaccess_end(fs);
-
-	// set_fs(fs);
 
 	aw_pr_info("channel:%d buf:%s cali_re:%d",
 			channel, buf, cali_re);
@@ -121,7 +112,6 @@ static int aw_cali_get_cali_re_from_file(int32_t *cali_re, int channel)
 	loff_t pos = 0;
 	mm_segment_t fs;
 
-	// fp = filp_open(AWINIC_CALI_FILE, O_RDONLY, 0);
 	fp = filp_open_block(AWINIC_CALI_FILE, O_RDONLY, 0);
 	if (IS_ERR(fp)) {
 		aw_pr_err("channel:%d open %s failed, error=%ld",
@@ -140,14 +130,12 @@ static int aw_cali_get_cali_re_from_file(int32_t *cali_re, int channel)
 		return -EINVAL;
 	}
 
-	// fs = get_fs();
-	// set_fs(KERNEL_DS);
 	fs = force_uaccess_begin();
 	aw_fs_read(fp, buf, f_size, &pos);
 	force_uaccess_end(fs);
-	// set_fs(fs);
 
-	if (sscanf(buf, "%d", &int_cali_re) == 1)
+
+	if (kstrtoint(re_buf, 10, &int_cali_re) == 0)
 		*cali_re = int_cali_re;
 	else
 		*cali_re = AW_ERRO_CALI_RE_VALUE;

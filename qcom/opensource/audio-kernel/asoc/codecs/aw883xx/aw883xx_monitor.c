@@ -661,7 +661,7 @@ void aw883xx_monitor_start(struct aw_monitor_desc *monitor_desc)
 	aw_dev_info(aw_dev->dev, "enter");
 
 	if (monitor_desc->dsp_monitor_en == AW_MONITOR_ENABLE) {
-		aw_dev_err(aw_dev->dev, "dsp monitor is enable");
+		aw_dev_info(aw_dev->dev, "dsp monitor is enable");
 		return aw_dsp_monitor_start(monitor_desc);
 	}
 
