@@ -141,6 +141,7 @@ def define_art(t,v):
             "goodix_ts",
             "st_fts",
             "synaptics_tcm2_ts",
+            "gt9xx",
             "qts"
         ],
         config_options = [
@@ -166,6 +167,7 @@ def define_artvm(t,v):
             "st_fts",
             "focaltech_fts",
             "synaptics_tcm2_ts",
+            "gt9xx",
             "qts"
         ],
         config_options = [
